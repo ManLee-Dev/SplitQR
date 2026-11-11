@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SplitQR – Chia tiền nhóm bằng VietQR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--tx:#14201a;--mu:#6b7a72;--ac:#0f9d6b;--ac2:#e3f6ee;--bd:#dfe6e2;--rd:#d64545;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1512;--card:#18211c;--tx:#eaf2ee;--mu:#93a39a;--ac:#2fd49a;--ac2:#173a2c;--bd:#26332c;--rd:#ff7b7b}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{max-width:480px;margin:0 auto;padding:16px 16px 90px}
+h1{font-size:22px;margin:4px 0 2px}h2{font-size:17px;margin:0 0 10px}.sub{color:var(--mu);font-size:14px;margin:0 0 14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 4px}
+input,select{width:100%;padding:12px;font-size:16px;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx)}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px 16px;background:var(--ac);color:#fff;font-weight:600}
+button.sec{background:var(--ac2);color:var(--ac)}button.gh{background:transparent;color:var(--mu);padding:8px}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.row>.fit{flex:none}
+.steps{display:flex;gap:6px;margin-bottom:14px}.steps i{flex:1;height:5px;border-radius:3px;background:var(--bd)}.steps i.on{background:var(--ac)}
+.tabs{display:flex;background:var(--bd);border-radius:12px;padding:3px;margin-bottom:12px}.tabs button{flex:1;background:transparent;color:var(--mu);padding:9px}.tabs button.on{background:var(--card);color:var(--tx)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;margin:3px 4px 3px 0;border-radius:99px;background:var(--ac2);color:var(--ac);font-weight:600;font-size:14px;border:1px solid transparent;cursor:pointer}
+.chip.off{background:transparent;color:var(--mu);border-color:var(--bd);font-weight:500}
+.item{border-top:1px solid var(--bd);padding:10px 0}.item:first-of-type{border-top:0}
+.big{font-size:30px;font-weight:800;color:var(--ac)}
+.person{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--bd);border-radius:14px;margin-bottom:8px;background:var(--card);cursor:pointer;width:100%;text-align:left;color:var(--tx);font-weight:500}
+.av{width:40px;height:40px;border-radius:50%;background:var(--ac2);color:var(--ac);display:grid;place-items:center;font-weight:800;flex:none}
+.person .amt{margin-left:auto;font-weight:800}.paid{opacity:.5}.paid .amt{text-decoration:line-through}
+.badge{font-size:12px;color:var(--ac);font-weight:700}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{background:var(--card);width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));text-align:center;max-height:94%;overflow:auto}
+.qrbox{background:#fff;border-radius:14px;padding:10px;width:250px;max-width:70vw;margin:10px auto}.qrbox svg{width:100%;height:auto;display:block}
+.kv{display:flex;justify-content:space-between;font-size:14px;padding:4px 0;color:var(--mu)}.kv b{color:var(--tx)}
+.toast{position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;z-index:30}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--bd)}.bar>div{max-width:480px;margin:0 auto}.bar button{width:100%}
+</style></head><body><div id="app"></div><div id="m"></div>
+<script>
+const BANKS={"Vietcombank":"970436","VietinBank":"970415","BIDV":"970418","Agribank":"970405","MB Bank":"970422","Techcombank":"970407","ACB":"970416","VPBank":"970432","TPBank":"970423","Sacombank":"970403","VIB":"970441","HDBank":"970437","SHB":"970443","MSB":"970426","OCB":"970448"};
+let S={step:1,mode:"equal",total:0,people:[],items:[],fee:0,paid:{},owner:{bank:"MB Bank",acc:"",name:""}};
+try{const o=JSON.parse(localStorage.getItem("splitqr_owner")||"null");if(o)S.owner=o}catch(e){}
+const $=id=>document.getElementById(id), fmt=n=>Math.round(n).toLocaleString("vi-VN")+"đ";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const noAccent=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/g,"d").replace(/Đ/g,"D");
+function toast(t){const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1800)}
+// ---- VietQR (EMVCo) ----
+const tlv=(i,v)=>i+String(v.length).padStart(2,"0")+v;
+function crc(s){let c=0xFFFF;for(const ch of s){c^=ch.charCodeAt(0)<<8;for(let i=0;i<8;i++)c=c&0x8000?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,"0")}
+function payload(amt,content){const o=S.owner;const a=tlv("00",BANKS[o.bank])+tlv("01",o.acc);
+ const mer=tlv("00","A000000727")+tlv("01",a)+tlv("02","QRIBFTTA");
+ const s="000201010212"+tlv("38",mer)+"5303704"+tlv("54",String(Math.round(amt)))+"5802VN"+tlv("62",tlv("08",content))+"6304";return s+crc(s)}
+const mkQR=(amt,c)=>{const q=qrcode(0,"M");q.addData(payload(amt,c));q.make();return q};
+const content=n=>("SplitQR "+noAccent(n)).replace(/[^A-Za-z0-9 ]/g,"").slice(0,25);
+// ---- calc ----
+function calc(){const n=S.people.length;if(!n)return[];
+ if(S.mode==="equal"){const b=Math.floor(S.total/n);return S.people.map((p,i)=>b+(i===0?S.total-b*n:0))}
+ const r=S.people.map(()=>S.fee/n);S.items.forEach(it=>{if(it.who.length)it.who.forEach(w=>r[w]+=it.p/it.who.length)});return r.map(Math.round)}
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const dispTotal=()=>S.mode==="equal"?S.total:sum(S.items.map(i=>i.p))+S.fee;
+// ---- screens ----
+function steps(){return'<div class="steps">'+[1,2,3].map(i=>`<i class="${S.step>=i?"on":""}"></i>`).join("")+"</div>"}
+function R(){const a=$("app");
+ if(S.step===1){a.innerHTML=`<h1>SplitQR</h1><p class="sub">Chia tiền nhóm, mỗi người một mã VietQR.</p>${steps()}
+ <div class="card"><h2>1. Tài khoản nhận tiền</h2>
+ <label>Ngân hàng</label><select id="bank">${Object.keys(BANKS).map(b=>`<option${b===S.owner.bank?" selected":""}>${b}</option>`).join("")}</select>
+ <label>Số tài khoản</label><input id="acc" inputmode="numeric" placeholder="VD: 0123456789" value="${esc(S.owner.acc)}">
+ <label>Tên chủ tài khoản</label><input id="nm" placeholder="NGUYEN VAN A" value="${esc(S.owner.name)}">
+ <p class="sub" style="margin:10px 0 0">Thông tin được lưu trên máy bạn (LocalStorage) cho lần sau.</p></div>
+ <button class="sec" style="width:100%" onclick="demo()">Dùng dữ liệu mẫu để xem demo</button>
+ <div class="bar"><div><button onclick="next1()">Tiếp tục</button></div></div>`}
+ else if(S.step===2){a.innerHTML=`${steps()}<div class="card"><h2>2. Hóa đơn và thành viên</h2>
+ <div class="tabs"><button class="${S.mode==="equal"?"on":""}" onclick="S.mode='equal';R()">Chia đều</button><button class="${S.mode==="item"?"on":""}" onclick="S.mode='item';R()">Chia theo món</button></div>
+ <label>Người tham gia</label><div>${S.people.map((p,i)=>`<span class="chip" onclick="delP(${i})">${esc(p)} ✕</span>`).join("")}</div>
+ <div class="row" style="margin-top:6px"><input id="pn" placeholder="Thêm tên (An, Bình...)" onkeydown="if(event.key==='Enter')addP()"><button class="fit sec" onclick="addP()">Thêm</button></div></div>
+ ${S.mode==="equal"?`<div class="card"><label style="margin-top:0">Tổng tiền (VNĐ)</label><input id="tot" inputmode="numeric" placeholder="VD: 1200000" value="${S.total||""}" oninput="S.total=+this.value.replace(/\\D/g,'')||0;pv()"></div>`:
+ `<div class="card"><h2>Danh sách món</h2>${S.items.map((it,i)=>`<div class="item"><div class="row"><input placeholder="Tên món" value="${esc(it.n)}" oninput="S.items[${i}].n=this.value"><input class="fit" style="width:110px" inputmode="numeric" placeholder="Giá" value="${it.p||""}" oninput="S.items[${i}].p=+this.value.replace(/\\D/g,'')||0;pv()"><button class="gh fit" onclick="S.items.splice(${i},1);R()">✕</button></div>
+ <div style="margin-top:6px">${S.people.map((p,j)=>`<span class="chip ${it.who.includes(j)?"":"off"}" onclick="tog(${i},${j})">${esc(p)}</span>`).join("")||'<span class="sub">Hãy thêm người trước</span>'}</div></div>`).join("")}
+ <button class="sec" style="width:100%;margin-top:6px" onclick="S.items.push({n:'',p:0,who:S.people.map((_,k)=>k)});R()">+ Thêm món</button>
+ <label>Phí VAT / ship (chia đều cho mọi người)</label><input inputmode="numeric" value="${S.fee||""}" placeholder="0" oninput="S.fee=+this.value.replace(/\\D/g,'')||0;pv()"></div>`}
+ <div class="card row"><span style="flex:none">Tổng cộng</span><b id="pv" style="text-align:right"></b></div>
+ <div class="bar"><div class="row"><button class="gh fit" onclick="S.step=1;R()">Quay lại</button><button onclick="next2()">Tạo mã QR</button></div></div>`;pv()}
+ else{const am=calc(),tot=sum(am),pd=S.people.filter((_,i)=>S.paid[i]).length;
+ a.innerHTML=`${steps()}<div class="card"><div class="sub" style="margin:0">Tổng hóa đơn · ${S.people.length} người</div><div class="big">${fmt(tot)}</div><div class="sub" style="margin:0">Nhận về: ${esc(S.owner.name||"—")} · ${S.owner.bank} · ${esc(S.owner.acc)}</div></div>
+ <h2>Bấm vào tên để hiện mã QR · đã trả ${pd}/${S.people.length}</h2>
+ ${S.people.map((p,i)=>`<button class="person ${S.paid[i]?"paid":""}" onclick="show(${i})"><span class="av">${esc(p[0].toUpperCase())}</span><span>${esc(p)}${S.paid[i]?' <span class="badge">✓ đã trả</span>':""}</span><span class="amt">${fmt(am[i])}</span></button>`).join("")}
+ <div class="row" style="margin-top:12px"><button class="sec" onclick="copyTxt()">Sao chép tóm tắt</button><button class="sec" onclick="dlImg()">Tải ảnh summary</button></div>
+ <div class="bar"><div class="row"><button class="gh fit" onclick="S.step=2;R()">Sửa hóa đơn</button><button onclick="S={...S,step:2,total:0,people:[],items:[],fee:0,paid:{}};R()">Hóa đơn mới</button></div></div>`}}
+function pv(){const e=$("pv");if(e)e.textContent=fmt(dispTotal())}
+function tog(i,j){const w=S.items[i].who,k=w.indexOf(j);k<0?w.push(j):w.splice(k,1);R()}
+function addP(){const v=$("pn").value.split(",").map(s=>s.trim()).filter(Boolean);S.people.push(...v);R();$("pn").focus()}
+function delP(i){S.people.splice(i,1);S.items.forEach(it=>it.who=it.who.filter(w=>w!==i).map(w=>w>i?w-1:w));S.paid={};R()}
+function next1(){const o=S.owner;o.bank=$("bank").value;o.acc=$("acc").value.replace(/\D/g,"");o.name=$("nm").value.trim();
+ if(o.acc.length<6)return toast("Nhập số tài khoản hợp lệ");try{localStorage.setItem("splitqr_owner",JSON.stringify(o))}catch(e){}S.step=2;R()}
+function next2(){if(!S.people.length)return toast("Thêm ít nhất 1 người");if(!dispTotal())return toast("Nhập số tiền");S.step=3;R()}
+function demo(){S.owner={bank:"MB Bank",acc:"0123456789",name:"NGUYEN VAN A"};S.mode="item";S.people=["An","Bình","Cường","Dung"];
+ S.items=[{n:"Lẩu bò",p:480000,who:[0,1,2,3]},{n:"Bia (6 lon)",p:210000,who:[1,2]},{n:"Nước ngọt",p:60000,who:[0,3]},{n:"Tráng miệng",p:90000,who:[0,3]}];S.fee=72000;S.paid={};S.step=3;R()}
+function show(i){const am=calc(),amt=am[i],c=content(S.people[i]),q=mkQR(amt,c);
+ $("m").innerHTML=`<div class="modal" onclick="if(event.target===this)this.remove()"><div class="sheet"><h2>${esc(S.people[i])} · ${fmt(amt)}</h2>
+ <div class="qrbox">${q.createSvgTag({scalable:true})}</div>
+ <p class="sub">Mở app ngân hàng, quét mã. Số tiền, tài khoản và nội dung tự điền.</p>
+ <div class="kv"><span>Người nhận</span><b>${esc(S.owner.name)}</b></div><div class="kv"><span>Ngân hàng</span><b>${S.owner.bank}</b></div><div class="kv"><span>Số TK</span><b>${esc(S.owner.acc)}</b></div><div class="kv"><span>Nội dung</span><b>${c}</b></div>
+ <div class="row" style="margin-top:12px"><button class="sec" onclick="S.paid[${i}]=!S.paid[${i}];$('m').innerHTML='';R()">${S.paid[i]?"Bỏ đánh dấu":"Đánh dấu đã trả"}</button><button onclick="$('m').innerHTML=''">Đóng</button></div></div></div>`}
+function summary(){const am=calc();return"💸 CHIA TIỀN – tổng "+fmt(sum(am))+"\nChuyển cho: "+S.owner.name+" · "+S.owner.bank+" · "+S.owner.acc+"\n\n"+S.people.map((p,i)=>(S.paid[i]?"✅ ":"⏳ ")+p+": "+fmt(am[i])).join("\n")+"\n\nNội dung CK: SplitQR <tên>"}
+function copyTxt(){const t=summary();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("Đã sao chép tóm tắt"),()=>{const x=document.createElement("textarea");x.value=t;document.body.appendChild(x);x.select();try{document.execCommand("copy");toast("Đã sao chép tóm tắt")}catch(e){toast("Không sao chép được")}x.remove()})}
+function dlImg(){const am=calc(),n=S.people.length,rows=Math.ceil(n/2),W=720,H=170+rows*330,c=document.createElement("canvas");c.width=W;c.height=H;const g=c.getContext("2d");
+ g.fillStyle="#f4f6f5";g.fillRect(0,0,W,H);g.fillStyle="#0f9d6b";g.fillRect(0,0,W,120);g.fillStyle="#fff";g.font="bold 36px sans-serif";g.fillText("SplitQR · Chia tiền nhóm",30,52);
+ g.font="22px sans-serif";g.fillText(S.owner.name+" · "+S.owner.bank+" · "+S.owner.acc,30,90);
+ S.people.forEach((p,i)=>{const x=30+(i%2)*340,y=145+Math.floor(i/2)*330;g.fillStyle="#fff";g.beginPath();g.roundRect(x,y,320,310,18);g.fill();
+ g.fillStyle="#14201a";g.font="bold 26px sans-serif";g.fillText(p,x+16,y+38);g.fillStyle="#0f9d6b";g.font="bold 24px sans-serif";g.fillText(fmt(am[i]),x+16,y+70);
+ const q=mkQR(am[i],content(p)),m=q.getModuleCount(),sz=220,cs=sz/m,ox=x+50,oy=y+80;g.fillStyle="#000";for(let r=0;r<m;r++)for(let k=0;k<m;k++)if(q.isDark(r,k))g.fillRect(ox+k*cs,oy+r*cs,cs+.5,cs+.5)});
+ c.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="splitqr-summary.png";document.body.appendChild(a);a.click();a.remove();toast("Đã tạo ảnh summary")})}
+R();
+</script></body></html>
