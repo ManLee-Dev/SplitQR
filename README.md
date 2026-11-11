@@ -1,36 +1,63 @@
 # SplitQR 💸
 
-Web App mobile-first giúp chia tiền nhóm và tạo sẵn mã **VietQR** riêng cho từng thành viên. Người chuyển chỉ cần quét QR bằng app ngân hàng: số tiền, tài khoản người nhận và nội dung chuyển khoản được điền sẵn.
+SplitQR là web app mobile-first giúp chia tiền nhóm và tạo sẵn mã VietQR cho từng thành viên. Mỗi người chỉ cần quét mã bằng app ngân hàng, hệ thống sẽ tự điền số tiền, tài khoản nhận và nội dung chuyển khoản.
 
 ## Tính năng
-- Lưu thông tin tài khoản nhận tiền vào LocalStorage
-- Chia đều hoặc chia theo món (kèm phí VAT/ship chia đều)
-- Mã VietQR động (chuẩn EMVCo/NAPAS) tạo ngay trên trình duyệt, không cần backend
-- Sao chép tóm tắt để gửi Zalo/Telegram, tải ảnh summary PNG kèm QR của mọi người
+- Lưu thông tin tài khoản nhận tiền trên trình duyệt bằng LocalStorage
+- Chia đều hoặc chia theo món, hỗ trợ phí VAT / ship chia đều
+- Tạo mã VietQR động theo chuẩn EMVCo/NAPAS ngay trên frontend
+- Sao chép tóm tắt để gửi qua Zalo / Telegram
+- Tải ảnh summary PNG kèm QR của từng người
 - Đánh dấu ai đã trả tiền
-- Hỗ trợ dark mode
+- Giao diện thân thiện trên mobile, dễ sử dụng
 
-## Chạy thử
-Mở `index.html` bằng trình duyệt, hoặc chạy server tĩnh:
-
+## Cài đặt và chạy local
 ```bash
-python3 -m http.server 8000
+npm install
+npm run dev
 ```
 
-## Deploy lên GitHub Pages
-1. Đẩy repo lên GitHub
-2. Vào **Settings → Pages**
-3. Chọn **Deploy from a branch**, branch `main`, thư mục `/ (root)`
-4. Sau ít phút, app chạy tại `https://<tên-user>.github.io/splitqr/`
+Mở địa chỉ hiển thị trong terminal, ví dụ: http://localhost:4173/
 
-## Công nghệ
-HTML/CSS/JavaScript thuần, một file duy nhất. Thư viện [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) tải từ cdnjs.
+## Build production
+```bash
+npm run build
+```
+
+## Preview production build
+```bash
+npm run preview
+```
+
+## Công nghệ sử dụng
+- Vite
+- Vanilla JavaScript modules
+- CSS module-based styling
+- qrcode-generator
+
+## Cấu trúc dự án
+```text
+.
+├── index.html
+├── src/
+│   ├── main.js
+│   ├── styles.css
+│   ├── lib/
+│   │   ├── banks.js
+│   │   ├── calculator.js
+│   │   ├── format.js
+│   │   └── qr.js
+├── package.json
+├── vite.config.js
+├── .gitignore
+└── README.md
+```
 
 ## Hướng phát triển
-- Chụp hóa đơn và nhận dạng món (OCR)
-- Chia VAT theo tỷ lệ giá trị món
+- OCR hóa đơn để tạo món tự động
+- Chia tiền theo tỷ lệ % thay vì chia đều
 - Lưu lịch sử các lần chia tiền
-- Chia sẻ link nhóm (cần backend)
+- Tạo link nhóm cho nhiều người cùng theo dõi
 
 ## Giấy phép
 MIT

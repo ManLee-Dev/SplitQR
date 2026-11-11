@@ -1,0 +1,17 @@
+export const BANKS = {
+  'Vietcombank': '970436',
+  'VietinBank': '970415',
+  'BIDV': '970418',
+  'Agribank': '970405',
+  'MB Bank': '970422',
+  'Techcombank': '970407',
+  'ACB': '970416',
+  'VPBank': '970432',
+  'TPBank': '970423',
+  'Sacombank': '970403',
+  'VIB': '970441',
+  'HDBank': '970437',
+  'SHB': '970443',
+  'MSB': '970426',
+  'OCB': '970448',
+};
